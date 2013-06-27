@@ -1,14 +1,53 @@
 -- Setup
+SET ECHO ON;
 
-CREATE SMALLFILE TABLESPACE "CUSTOMERSALES" DATAFILE '/u01/app/oracle/oradata/orcl/customersales.dbf' SIZE 5M LOGGING EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO DEFAULT NOCOMPRESS;
+SET SERVEROUTPUT ON;
+DECLARE 
+	v_counter NUMBER :=0;
+BEGIN
+	/* Check to see if customersales exists */
+	select count(*) 
+	into v_counter from dba_tablespaces 
+	where
+	tablespace_name='CUSTOMERSALES';
 
+	/* If exists, delete it */
+	IF v_counter=1
+	THEN
+    		DBMS_OUTPUT.PUT_LINE ('DROPPING CUSTOMERSALES TABLESPACE....');
+    		EXECUTE IMMEDIATE ('DROP TABLESPACE CUSTOMERSALES INCLUDING CONTENTS  
+     		CASCADE CONSTRAINTS');
+	END IF;
+END;
+/
 
-drop user CUSTOMERSALES cascade;
+CREATE SMALLFILE TABLESPACE "CUSTOMERSALES" DATAFILE '/u01/app/oracle/oradata/orcl/customersales.dbf' 
+SIZE 5M REUSE LOGGING EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO DEFAULT NOCOMPRESS;
+COMMIT;
 
-create user CUSTOMERSALES identified by verysecure
-default tablespace CUSTOMERSALES;
+SET SERVEROUTPUT ON;
+DECLARE 
+	v_counter NUMBER :=0;
+BEGIN
+	/* Check to see if customersales user exists */
+	select count(*) 
+	into v_counter from dba_users 
+	where
+	username='CUSTOMERSALES';
 
+	/* If exists, delete it */
+	IF v_counter=1
+	THEN
+    		DBMS_OUTPUT.PUT_LINE ('DROPPING CUSTOMERSALES USER....');
+    		EXECUTE IMMEDIATE ('DROP USER CUSTOMERSALES CASCADE');
+	END IF;
+END;
+/
+
+CREATE USER CUSTOMERSALES identified by verysecure default tablespace CUSTOMERSALES;
 grant connect, resource to CUSTOMERSALES;
+COMMIT;
+
 
 drop table "CUSTOMERSALES"."INVOICE";
 
