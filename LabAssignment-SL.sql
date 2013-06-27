@@ -1,7 +1,23 @@
--- Setup
+-- Shane Lister Comp 4670 June 2013
+
+-- This script assumes that the listener, oracle instance, and database have been started
+-- Creates Customer Sales app
+--   Creates tablespace, user schema, 5 tables, profile, 2 roles, 3 users
+-- Checks for the existance of objects and removes them before creating them again
+
+-- Instructions
+--   Start Listener
+--   Mount database
+--   Open database
+--   Login to SQL plus as SYS (or sufficient privledges)
+--   Run this script file
+
+-- Allow script user to see feedback in console
 SET ECHO ON;
 SET SERVEROUTPUT ON;
 
+-- Search the current tablespaces for CUSTOMERSALES
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -21,10 +37,15 @@ BEGIN
 END;
 /
 
+-- Create the CUSTOMERSALES tablespace
+--   We need a tablespace and datafile for the components of our app
 CREATE SMALLFILE TABLESPACE "CUSTOMERSALES" DATAFILE '/u01/app/oracle/oradata/orcl/customersales.dbf' 
 SIZE 5M REUSE LOGGING EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO DEFAULT NOCOMPRESS;
 COMMIT;
 
+
+-- Search the current users for CUSTOMERSALES
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -43,10 +64,16 @@ BEGIN
 END;
 /
 
+-- Our app needs a user so we can interact with it
 CREATE USER CUSTOMERSALES identified by verysecure default tablespace CUSTOMERSALES;
 grant connect, resource to CUSTOMERSALES;
 COMMIT;
 
+
+-- Searches for all the tables we will be making and removes them if found
+
+-- Search the current tables for LINE
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -65,6 +92,8 @@ BEGIN
 END;
 /
 
+-- Search the current tables for INVOICE
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -83,6 +112,8 @@ BEGIN
 END;
 /
 
+-- Search the current tables for PRODUCT
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -101,6 +132,8 @@ BEGIN
 END;
 /
 
+-- Search the current tables for CUSTOMER
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -119,6 +152,8 @@ BEGIN
 END;
 /
 
+-- Search the current tables for VENDOR
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -137,6 +172,8 @@ BEGIN
 END;
 /
 
+-- Create the tables we will need for our app
+--   It is safe to do so because they were removed as above
 CREATE TABLE "CUSTOMERSALES"."CUSTOMER" ( 
   "CUS_CODE" NUMBER, 
 	"CUS_LNAME" VARCHAR2(15) NOT NULL, 
@@ -190,14 +227,18 @@ CREATE TABLE "CUSTOMERSALES"."LINE" (
     CONSTRAINT "FK2_LINE" FOREIGN KEY ("P_CODE") REFERENCES "CUSTOMERSALES"."PRODUCT" ("P_CODE") VALIDATE) TABLESPACE "CUSTOMERSALES";
    
 
+-- Add some constraint checks as per business rules
 ALTER TABLE "CUSTOMERSALES"."PRODUCT" ADD ( 
 	CONSTRAINT "CHK_P_PRICE" CHECK (P_PRICE > 0 AND P_PRICE < 1000) VALIDATE );
 	
 ALTER TABLE "CUSTOMERSALES"."LINE" ADD ( 
 	CONSTRAINT "CHK_LINE_PRICE" CHECK (LINE_PRICE > 0 AND LINE_PRICE < 1200) VALIDATE );
+-- Not sure if these commit lines are needed, investigate
 COMMIT;
 
 
+-- Checks the current profiles for CUSTPROFILE
+--   Removes if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -216,6 +257,7 @@ BEGIN
 END;
 /
 
+-- Create the CUSTPROFILE profile with a idle timeout of 10 mins 
 CREATE PROFILE "CUSTPROFILE" LIMIT CPU_PER_SESSION DEFAULT
 CPU_PER_CALL DEFAULT
 CONNECT_TIME DEFAULT
@@ -235,6 +277,8 @@ PASSWORD_VERIFY_FUNCTION DEFAULT;
 COMMIT;
 
 
+-- Check current roles for CUSTCLERK
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -253,6 +297,8 @@ BEGIN
 END;
 /
 
+-- Create the CUSTCLERK role
+--   A basic role for updating and retrieving information
 CREATE ROLE "CUSTCLERK" NOT IDENTIFIED;
 GRANT SELECT ON "CUSTOMERSALES"."CUSTOMER" TO "CUSTCLERK";
 GRANT UPDATE ON "CUSTOMERSALES"."CUSTOMER" TO "CUSTCLERK";
@@ -265,6 +311,9 @@ GRANT UPDATE ON "CUSTOMERSALES"."PRODUCT" TO "CUSTCLERK";
 GRANT SELECT ON "CUSTOMERSALES"."VENDOR" TO "CUSTCLERK";
 GRANT UPDATE ON "CUSTOMERSALES"."VENDOR" TO "CUSTCLERK";
 
+
+-- Check for the CUSTMANAGER role
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -283,6 +332,8 @@ BEGIN
 END;
 /
 
+-- Create the CUSTMANAGER role
+--   This is a higher level role allowing for removing and inserting new customers
 CREATE ROLE "CUSTMANAGER" NOT IDENTIFIED;
 GRANT DELETE ON "CUSTOMERSALES"."CUSTOMER" TO "CUSTMANAGER";
 GRANT INSERT ON "CUSTOMERSALES"."CUSTOMER" TO "CUSTMANAGER";
@@ -297,6 +348,9 @@ GRANT INSERT ON "CUSTOMERSALES"."VENDOR" TO "CUSTMANAGER";
 GRANT "CUSTCLERK" TO "CUSTMANAGER";
 COMMIT;
 
+
+-- Check to see if end user already exists in database
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -315,10 +369,15 @@ BEGIN
 END;
 /
 
+-- Create the TOM user of our app
+--   Tom is a clerk
 CREATE USER "TOM" PROFILE "CUSTPROFILE" IDENTIFIED BY "Tomclerk" PASSWORD EXPIRE DEFAULT TABLESPACE "CUSTOMERSALES" ACCOUNT UNLOCK;
 GRANT "CONNECT" TO "TOM";
 GRANT "CUSTCLERK" TO "TOM";
 
+
+-- Check for end user MAYA
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -337,10 +396,15 @@ BEGIN
 END;
 /
 
+-- Create the Maya end user
+--   Maya is a clerk for the customers app
 CREATE USER "MAYA" PROFILE "CUSTPROFILE" IDENTIFIED BY "Mayaclerk" PASSWORD EXPIRE DEFAULT TABLESPACE "CUSTOMERSALES" ACCOUNT UNLOCK;
 GRANT "CONNECT" TO "MAYA";
 GRANT "CUSTCLERK" TO "MAYA";
 
+
+-- Check to see if the end user SALLY exists
+--   Remove if found
 DECLARE 
 	v_counter NUMBER :=0;
 BEGIN
@@ -359,6 +423,8 @@ BEGIN
 END;
 /
 
+-- Create the Sally user
+--   Sally is a manager for the customers app, has privledges of clerk as well
 CREATE USER "SALLY" PROFILE "CUSTPROFILE" IDENTIFIED BY "Custman" PASSWORD EXPIRE DEFAULT TABLESPACE "CUSTOMERSALES" ACCOUNT UNLOCK;
 GRANT "CONNECT" TO "SALLY";
 GRANT "CUSTMANAGER" TO "SALLY";
