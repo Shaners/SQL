@@ -429,7 +429,8 @@ CREATE USER "SALLY" PROFILE "CUSTPROFILE" IDENTIFIED BY "Custman" PASSWORD EXPIR
 GRANT "CONNECT" TO "SALLY";
 GRANT "CUSTMANAGER" TO "SALLY";
 
--- Broken trigger attempt, need to make a temp table
+
+-- Broken trigger attempt, need to make a temp table via join
 /* 
 ALTER SYSTEM SET resource_limit = TRUE SCOPE=MEMORY;
 
